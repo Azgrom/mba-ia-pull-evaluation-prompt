@@ -355,6 +355,72 @@ tests/test_prompts.py::TestPrompts::test_minimum_techniques PASSED
 
 ---
 
+## Resultados da Iteração 3
+
+**Status atual: REPROVADO** — `f1_score` em 0.77, abaixo do mínimo de 0.80. As demais quatro métricas passam.
+
+Commit avaliado no Hub: `azgrom/bug_to_user_story_v2` (`0b9b9235`).
+
+### Técnicas aplicadas
+
+| Técnica | Como aparece no prompt |
+|---|---|
+| Role Prompting | Persona de Product Owner sênior, mais uma regra de *polaridade de persona*: quando o ator afetado é um processo de backend ou uma regra de integridade do sistema, a User Story abre com `Como o sistema…` (o corpus faz isso em 3 dos 15 exemplos). |
+| Chain-of-Thought | Cadeia comprimida em uma linha — identificar ator, extrair fatos afirmados, selecionar o tier, redigir. A versão anterior tinha quatro passos numerados que duplicavam o contrato de saída. |
+| Few-shot Learning | Três exemplares completos, um por tier (simples 8 linhas, médio 14, complexo 88), calibrados contra o tamanho medido das referências. |
+
+### Métricas
+
+Duas medições do **mesmo** commit publicado, com os mesmos modelos e `temperature=0`:
+
+| Métrica | Execução reportada (iteração 2) | Diagnóstico do mesmo prompt (mesmo dia) |
+|---|---|---|
+| F1-Score | 0.90 ✓ | 0.79 |
+| Clarity | 0.80 ✗ | 0.87 |
+| Precision | 0.73 ✗ | 0.83 |
+
+A divergência de ±0.10 entre medições idênticas é maior que o efeito que as edições pretendiam produzir. **A linha de base da iteração 2 não é confiável**, e a aparente melhora de `clarity` e `precision` abaixo é majoritariamente ruído do juiz, não resultado das edições.
+
+Comparando prompt antigo e prompt novo **no mesmo instrumento** (diagnóstico vs. execução oficial):
+
+| Métrica | v2 anterior | v2 remediado | Δ |
+|---|---|---|---|
+| F1-Score | 0.789 | 0.773 | −0.016 |
+| Clarity | 0.870 | 0.867 | −0.003 |
+| Precision | 0.834 | 0.839 | +0.005 |
+
+O agregado praticamente não se moveu. A atribuição por tier mostra por quê — dois efeitos grandes e opostos se cancelaram:
+
+| Tier | F1 antes | F1 depois | Δ |
+|---|---|---|---|
+| Simples (1-5) | 0.870 | 0.728 | **−0.142** |
+| Médio (6-12) | 0.749 | 0.753 | +0.004 |
+| Complexo (13-15) | 0.750 | 0.897 | **+0.147** |
+
+O ganho no tier complexo veio de adicionar `=== USER STORY PRINCIPAL ===`, as sub-seções e a escala que faltavam — as respostas anteriores estavam de 1.626 a 3.576 caracteres abaixo das referências. A perda no tier simples é o alvo da próxima iteração.
+
+### Evidência estrutural (determinística, sem chamadas de LLM)
+
+`scripts/diagnose_v2.py` compara cada resposta gerada com sua referência. Contra o prompt anterior:
+
+- **6 exemplos com tier errado** — 3 e 4 (simples→médio); 6, 7, 8 e 10 (médio→complexo). A análise previa apenas o exemplo 8.
+- **Banners `===` fora do tier complexo** nos exemplos 6, 7, 8 e 10.
+- **Polaridade de persona divergente** exatamente nos exemplos 6, 8 e 11 — os três que a referência abre com `Como o sistema`.
+- **Nenhum vazamento de preâmbulo** em nenhum dos 15 exemplos, o que descartou empiricamente a oitava mudança planejada.
+
+Linha de base completa em `spdd/analysis/diagnostics/iteration-2-baseline.md`.
+
+### Restrições deliberadamente não exercidas
+
+- **`EVAL_MODEL` não foi alterado** (permanece `gpt-4o`). Trocá-lo mudaria o instrumento de medição, não o artefato sob teste, e tornaria os resultados incomparáveis entre iterações.
+- **`LLM_MODEL` não foi promovido** de `gpt-4o-mini` para `gpt-4o`. É provavelmente a mudança isolada com maior chance de cruzar os cinco limiares, e é justamente por isso que foi descartada: uma aprovação obtida assim não demonstraria nada sobre o prompt, e ainda faria sujeito e juiz serem o mesmo modelo, introduzindo viés de auto-preferência.
+
+### Assimetria sujeito/juiz
+
+O prompt é executado por `gpt-4o-mini` e avaliado por `gpt-4o`. Não há viés de auto-preferência, mas o juiz detecta com confiabilidade desvios estruturais e de volume que o sujeito não evita com a mesma confiabilidade. Por isso a densidade condicional do prompt é ela própria um modo de falha: cada ramificação é um ponto onde o modelo mais fraco desvia.
+
+---
+
 ## Entregável
 
 **1. Repositório público no GitHub** (fork do repositório base) contendo:
