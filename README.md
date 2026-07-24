@@ -139,14 +139,13 @@ EVAL_MODEL=gemini-3.5-flash-lite    # juiz das 5 métricas
 
 #### Link público do dashboard do LangSmith
 
-- **Dashboard (público):** `<INSERIR LINK PÚBLICO DO DASHBOARD DO LANGSMITH>`
+- **Dashboard (público):** [LangSmithHomePage](https://smith.langchain.com/o/3f0f388d-02d6-4b86-9f64-a1709672aceb)
 - Projeto LangSmith: `FullCycleChallenge` — dataset de avaliação: `FullCycleChallenge-eval`
 - Prompt avaliado (público no Hub): `azgrom/bug_to_user_story_v2`
 
 #### Screenshots das avaliações (notas mínimas de 0.8 atingidas)
 
-- `<INSERIR SCREENSHOT: resumo das 5 métricas com STATUS APROVADO>`
-- `<INSERIR SCREENSHOT: notas por métrica >= 0.8>`
+  ![[swappy-20260724_193725.png]]
 
 Saída esperada de `python src/evaluate.py` na execução final aprovada:
 
@@ -323,15 +322,13 @@ Link público (ou screenshots) do dashboard, com os seguintes itens visíveis:
 
 - **Dataset de avaliação com 15 exemplos** — `FullCycleChallenge-eval`
   (5 simples / 7 médios / 3 complexos).
-  `<INSERIR SCREENSHOT/LINK: dataset com 15 exemplos>`
+  ![[swappy-20260724_192735.png]]![[swappy-20260724_192807.png]]![[swappy-20260724_192818.png]]
 - **Execuções dos prompts v2 (otimizados) com notas `>= 0.8`** — run de
   `azgrom/bug_to_user_story_v2` com STATUS APROVADO.
-  `<INSERIR SCREENSHOT/LINK: run com 5 métricas >= 0.8>`
+  ![[swappy-20260724_193725.png]]
 - **Tracing detalhado de pelo menos 3 exemplos** — traces de um exemplo simples, um
-  médio e um complexo, mostrando entrada, geração e o raciocínio dos juízes.
-  `<INSERIR SCREENSHOT/LINK: trace exemplo simples>`
-  `<INSERIR SCREENSHOT/LINK: trace exemplo médio>`
-  `<INSERIR SCREENSHOT/LINK: trace exemplo complexo>`
+  médio e um complexo, mostrando entrada, geração e o raciocínio dos juízes.![[swappy-20260724_193553.png]]
+
 
 > Dica: no dashboard, abra o run de avaliação → aba **Traces**, e torne o projeto público
 > em **Settings → Sharing** para gerar o link público.
