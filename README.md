@@ -355,9 +355,9 @@ tests/test_prompts.py::TestPrompts::test_minimum_techniques PASSED
 
 ---
 
-## Resultados da Iteração 3
+## Resultados da Otimização (Iterações 3–4 → v3)
 
-**Status atual: REPROVADO** — `f1_score` em 0.77, abaixo do mínimo de 0.80. As demais quatro métricas passam.
+**Status: REPROVADO.** Na iteração 3, `f1_score` fica em ~0.77 (abaixo do mínimo de 0.80) e as outras quatro passam — mas `precision` fica na corda bamba (~0.81–0.84 conforme a execução). O melhor estado *prompt-only* medido é 3/5 métricas (4/5 numa execução de precisão sortuda); ver a subseção **v3 — revert isolado e o teto estrutural** abaixo.
 
 Commit avaliado no Hub: `azgrom/bug_to_user_story_v2` (`0b9b9235`).
 
@@ -379,7 +379,7 @@ Duas medições do **mesmo** commit publicado, com os mesmos modelos e `temperat
 | Clarity | 0.80 ✗ | 0.87 |
 | Precision | 0.73 ✗ | 0.83 |
 
-A divergência de ±0.10 entre medições idênticas é maior que o efeito que as edições pretendiam produzir. **A linha de base da iteração 2 não é confiável**, e a aparente melhora de `clarity` e `precision` abaixo é majoritariamente ruído do juiz, não resultado das edições.
+À época, a divergência de ~±0.10 entre essas duas medições parecia maior que o efeito pretendido pelas edições — sugerindo que o ruído do juiz dominava o sinal. **Medições posteriores refutaram essa leitura no nível agregado**: três execuções idênticas deram F1 estável em 0.76–0.77 (amplitude 0.01), e os benchmarks v2/v3 no mesmo instrumento puseram a oscilação agregada em ~±0.02. O valor de 0.90 acima foi uma execução atípica; o que oscila ±0.10 é a nota *por exemplo*, que se dilui na média de 15 exemplos. O agregado, portanto, é confiável a duas casas e o teto de F1 ~0.77 é **real, não ruído** (ver a subseção **v3** e o retrospecto `spdd/analysis/GGQPA-XXX-202607240930-[Analysis]-v2-iteration-benchmark-retrospective.md`).
 
 Comparando prompt antigo e prompt novo **no mesmo instrumento** (diagnóstico vs. execução oficial):
 
@@ -418,6 +418,33 @@ Linha de base completa em `spdd/analysis/diagnostics/iteration-2-baseline.md`.
 ### Assimetria sujeito/juiz
 
 O prompt é executado por `gpt-4o-mini` e avaliado por `gpt-4o`. Não há viés de auto-preferência, mas o juiz detecta com confiabilidade desvios estruturais e de volume que o sujeito não evita com a mesma confiabilidade. Por isso a densidade condicional do prompt é ela própria um modo de falha: cada ramificação é um ponto onde o modelo mais fraco desvia.
+
+### v3 — revert isolado e o teto estrutural
+
+A iteração seguinte (que tornou o segundo grupo de critérios do tier médio *quase automático*) foi medida como uma **regressão**: não moveu o F1 e ainda derrubou a precisão de ~0.84 para ~0.81, quebrando a `correctness` junto. O `prompts/bug_to_user_story_v3.yml` reverte **exatamente essa regra** (segundo grupo volta a ser condicional) e **nada mais** — um experimento de variável única, para isolar o efeito.
+
+Benchmark local (mesma execução, mesma pontuação de `evaluate.py`, prompts do YAML local, sem push — `scripts/benchmark_v2_v3.py`):
+
+| Métrica | v2 (atual) | v3 (revert isolado) | Δ atribuível | Passa? |
+|---|---|---|---|---|
+| F1-Score | 0.754 | 0.740 | −0.014 | ✗ (ambos) |
+| Clarity | 0.873 | 0.867 | −0.007 | ✓ |
+| **Precision** | 0.788 | **0.809** | **+0.021** | v2 ✗ → **v3 ✓** |
+| Helpfulness | 0.831 | 0.838 | +0.007 | ✓ |
+| Correctness | 0.771 | 0.774 | +0.003 | ✗ (ambos) |
+
+A mudança fez o previsto: **a precisão se recuperou (+0.021) e voltou a passar**. v3 é o melhor artefato *prompt-only* — passa em `clarity`, `precision` e `helpfulness` (3/5).
+
+**Por que 5/5 é inalcançável só com o prompt — e é aritmética, não redação:**
+
+- **F1** está no teto de *recall* (~0.70 na metade de recall do juiz). Nenhuma edição o move: adicionar conteúdo levanta o recall e, na mesma medida, a superfície que a metade de precisão do F1 penaliza — as duas metades se cancelam na média harmônica.
+- **Correctness é uma falha *dependente*.** `correctness = (f1 + precision) / 2`. Com F1 preso em ~0.74–0.77, a `correctness` exigiria **precision ≥ 0.85** só para chegar a 0.80 — e a precisão satura em ~0.81–0.84. Ela falha *porque* o F1 falha, não por causa do prompt.
+
+Duas das cinco métricas estão, portanto, fora do alcance do trabalho de prompt: uma é o muro (F1), a outra está acorrentada ao muro (correctness).
+
+**Refino sobre o ruído do juiz:** entre execuções idênticas, o agregado oscila ~±0.02 na precisão (v2 mediu 0.812 e 0.788 em duas execuções), não os ±0.01 que uma leitura anterior sugeria. A `precision` passando (0.80–0.81) fica, portanto, na corda bamba — parte do 3/5 depende da sorte da execução. Relatório por exemplo em `spdd/analysis/diagnostics/benchmark-v2-vs-v3.md`.
+
+**Conclusão honesta:** com `LLM_MODEL=gpt-4o-mini`, o teto *prompt-only* é 3/5 métricas (4/5 numa execução de precisão sortuda). A única alavanca com folga real para cruzar os cinco limiares é promover o modelo sujeito para `gpt-4o` — deliberadamente fora de escopo (ver *Restrições deliberadamente não exercidas*), porque otimizaria o runtime, não o prompt.
 
 ---
 
