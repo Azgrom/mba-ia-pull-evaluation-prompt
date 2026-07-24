@@ -38,7 +38,7 @@ from metrics import evaluate_f1_score, evaluate_clarity, evaluate_precision
 load_dotenv()
 
 DATASET_PATH = "datasets/bug_to_user_story.jsonl"
-OUTPUT_PATH = "spdd/analysis/diagnostics/iteration-2-baseline.md"
+OUTPUT_PATH = "spdd/analysis/diagnostics/iteration-3-baseline.md"
 
 # Cabeçalho de seção: banner "=== X ===" ou linha "Header:" iniciada em maiúscula
 BANNER_RE = re.compile(r"^===.*===$")
@@ -186,6 +186,8 @@ def run_diagnostic(prompt_id: str) -> list:
                 "delta": delta,
                 "answer": answer,
                 "f1": f1["score"],
+                "f1_precision": f1.get("precision"),
+                "f1_recall": f1.get("recall"),
                 "clarity": clarity["score"],
                 "precision": precision["score"],
                 "reasonings": {
@@ -212,6 +214,8 @@ def run_diagnostic(prompt_id: str) -> list:
                 "delta": None,
                 "answer": "",
                 "f1": None,
+                "f1_precision": None,
+                "f1_recall": None,
                 "clarity": None,
                 "precision": None,
                 "reasonings": {},
@@ -229,14 +233,17 @@ def write_report(rows: list, out_path: str) -> None:
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
 
     lines = [
-        "# Diagnóstico v2 — baseline da iteração 2",
+        "# Diagnóstico v2 — baseline da iteração 3",
         "",
         "Gerado por `scripts/diagnose_v2.py` contra o commit publicado no Hub.",
+        "As colunas F1-P (precision) e F1-R (recall) são as estimativas que o juiz",
+        "de F1 calcula antes de tirar a média harmônica — é o recall que revela se a",
+        "perda de F1 vem de omissão (recall baixo) ou de excesso (precision baixa).",
         "",
         "## Tabela por exemplo",
         "",
-        "| # | Tier esp. | Tier emit. | Δchars | AC (ger/ref) | Banner indev. | Preâmbulo | Persona | Headers faltando | Headers sobrando | F1 | Clarity | Precision |",
-        "|---|-----------|------------|--------|--------------|---------------|-----------|---------|------------------|------------------|----|---------|-----------|",
+        "| # | Tier esp. | Tier emit. | Δchars | AC (ger/ref) | Banner indev. | Preâmbulo | Persona | Headers faltando | Headers sobrando | F1 | F1-P | F1-R | Clarity | Precision |",
+        "|---|-----------|------------|--------|--------------|---------------|-----------|---------|------------------|------------------|----|------|------|---------|-----------|",
     ]
 
     def fmt(score):
@@ -245,7 +252,7 @@ def write_report(rows: list, out_path: str) -> None:
     for row in rows:
         if row["error"]:
             lines.append(
-                f"| {row['index']} | {row['expected_tier']} | ERRO | — | — | — | — | — | — | — | — | — | — |"
+                f"| {row['index']} | {row['expected_tier']} | ERRO | — | — | — | — | — | — | — | — | — | — | — | — |"
             )
             continue
 
@@ -258,7 +265,8 @@ def write_report(rows: list, out_path: str) -> None:
             f"| {'DIVERGE' if d['personaPolarityMismatch'] else '-'} "
             f"| {'; '.join(d['headersMissing']) or '-'} "
             f"| {'; '.join(d['headersSurplus']) or '-'} "
-            f"| {fmt(row['f1'])} | {fmt(row['clarity'])} | {fmt(row['precision'])} |"
+            f"| {fmt(row['f1'])} | {fmt(row['f1_precision'])} | {fmt(row['f1_recall'])} "
+            f"| {fmt(row['clarity'])} | {fmt(row['precision'])} |"
         )
 
     lines += ["", "## Reasoning dos juízes", ""]
@@ -286,12 +294,15 @@ def write_report(rows: list, out_path: str) -> None:
         return sum(r[key] for r in ok) / len(ok) if ok else 0.0
 
     avg_f1, avg_clarity, avg_precision = mean("f1"), mean("clarity"), mean("precision")
+    avg_f1_p, avg_f1_r = mean("f1_precision"), mean("f1_recall")
 
     lines += [
         "## Médias",
         "",
         f"- Exemplos bem-sucedidos: {len(ok)}/{len(rows)}",
         f"- F1-Score: {avg_f1:.4f}",
+        f"  - F1 Precision (juiz): {avg_f1_p:.4f}",
+        f"  - F1 Recall (juiz): {avg_f1_r:.4f}  ← se baixo, a perda de F1 é omissão, não excesso",
         f"- Clarity: {avg_clarity:.4f}",
         f"- Precision: {avg_precision:.4f}",
         f"- Helpfulness: {(avg_clarity + avg_precision) / 2:.4f}",
