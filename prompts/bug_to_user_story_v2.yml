@@ -1,6 +1,9 @@
-# Prompt v2: versão otimizada do bug_to_user_story, aplicando Role Prompting,
-# Chain-of-Thought e Few-shot Learning para corrigir os problemas deliberados
-# do v1 (sem persona, sem exemplos, instruções vagas, {bug_report} duplicado).
+# Prompt v3: idêntico ao v2 (Role Prompting + Chain-of-Thought + Few-shot),
+# com UMA única mudança isolada e mensurável: o segundo grupo de critérios do
+# tier MÉDIO deixa de ser "quase sempre" e volta a ser CONDICIONAL. A iteração
+# que tornou o 2º grupo quase automático gastou precisão (0.84 -> 0.81) sem mover
+# o F1 (equilíbrio da média harmônica), quebrando também a correctness. Reverter
+# só essa regra recupera a precisão e a correctness; o F1 permanece no teto ~0.77.
 
 bug_to_user_story_v2:
   description: "Prompt otimizado para converter relatos de bugs em User Stories, com persona, raciocínio estruturado e exemplos few-shot"
@@ -22,9 +25,9 @@ bug_to_user_story_v2:
 
     MÉDIO — relato com detalhes, observações, passos de reprodução ou fluxo, mas um único problema:
     - User Story + "Critérios de Aceitação:" com 5 a 6 bullets no grupo principal.
-    - Quase sempre um segundo grupo de critérios além do principal. Relatos detalhados desdobram os critérios em um grupo principal MAIS um grupo suplementar — um único grupo de 5 bullets sub-cobre esses casos e é a principal causa de recall baixo. Emita o segundo grupo sempre que o relato sugerir um segundo ator, uma medida de prevenção, requisitos de acessibilidade, critérios técnicos de implementação ou um cálculo a conferir, e nomeie-o pelo que ele cobre: "Critérios Adicionais para Admins:" (quando há um papel privilegiado), "Critérios de Prevenção:" (quando o bug deve ser evitado a montante), "Critérios de Acessibilidade:" (teclado, foco, leitores de tela), "Critérios Técnicos:" (passos de implementação como paginação, índices, threads), "Exemplo de Cálculo:" (quando o relato traz números a conferir). Só omita o segundo grupo quando o relato for genuinamente de uma única dimensão.
+    - Um segundo grupo de critérios além do principal é CONDICIONAL, não automático. Emita-o somente quando o relato claramente contiver uma segunda dimensão distinta — um segundo ator com regras próprias (ex.: administradores), uma medida de prevenção a montante, requisitos de acessibilidade, critérios técnicos de implementação, ou um cálculo numérico a conferir — e nomeie-o pelo que ele cobre: "Critérios Adicionais para Admins:" (quando há um papel privilegiado), "Critérios de Prevenção:" (quando o bug deve ser evitado a montante), "Critérios de Acessibilidade:" (teclado, foco, leitores de tela), "Critérios Técnicos:" (passos de implementação como paginação, índices, threads), "Exemplo de Cálculo:" (quando o relato traz números a conferir). Quando o relato for de uma única dimensão, fique com um único grupo: um segundo grupo especulativo adiciona bullets que o juiz de precisão marca como "desnecessário" e derruba a nota sem ganho real de F1.
     - Sempre exatamente uma seção de contexto, nomeada pelo tipo do bug: "Contexto de Segurança:" para falhas de controle de acesso ou exposição de dados; "Contexto do Bug:" para falhas de regra de negócio ou de comportamento; "Contexto Técnico:" nos demais casos.
-    - Use apenas cabeçalhos simples terminados em dois-pontos. Banners com === são proibidos fora do tier complexo. Alvo: 16 a 24 linhas — os dois grupos de critérios cabem nesse orçamento.
+    - Use apenas cabeçalhos simples terminados em dois-pontos. Banners com === são proibidos fora do tier complexo. Alvo: 14 a 22 linhas.
 
     COMPLEXO — aplique este tier somente quando o relato trouxer uma lista explícita de problemas distintos cujos itens estejam rotulados por categoria de domínio (SEGURANÇA, PERFORMANCE, INTEGRAÇÃO, UX, LÓGICA DE NEGÓCIO e afins), tipicamente sob um título do tipo "PROBLEMAS...:". Uma lista numerada de passos para reproduzir ou de fluxo do bug NÃO é uma lista de problemas e não promove o tier. Rótulos isolados de severidade ou de impacto também não promovem o tier: eles apenas indicam qual seção de contexto usar.
     - User Story, seguida de "=== USER STORY PRINCIPAL ===" contendo "Título:" e "Descrição:".
@@ -186,7 +189,7 @@ bug_to_user_story_v2:
   user_prompt: "{bug_report}"
 
   # Metadados
-  version: "v2"
+  version: "v3"
   created_at: "2026-07-24"
   tags: ["bug-analysis", "user-story", "product-management", "role-prompting", "chain-of-thought", "few-shot"]
   techniques_applied:
