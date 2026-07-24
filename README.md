@@ -249,9 +249,35 @@ mba-ia-pull-evaluation-prompt/
 - [LangSmith Documentation](https://docs.smith.langchain.com/)
 - [Prompt Engineering Guide](https://www.promptingguide.ai/)
 
-## VirtualEnv para Python
+## Como Executar
 
-Crie e ative um ambiente virtual antes de instalar dependências:
+### Pré-requisitos
+
+- Python 3.9+ (ou Docker, como alternativa — veja a Opção B abaixo)
+- Conta no [LangSmith](https://smith.langchain.com/) com uma API Key
+- Uma API Key de LLM: OpenAI (`OPENAI_API_KEY`) ou Google Gemini (`GOOGLE_API_KEY`)
+
+### 1. Configurar variáveis de ambiente
+
+Copie o template e preencha com suas credenciais reais — o `.env` fica fora do controle de versão, nunca coloque chaves reais no `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Edite o `.env` com:
+
+- `LANGSMITH_API_KEY` — chave da API do LangSmith
+- `LANGSMITH_PROJECT` — nome do projeto no LangSmith (usado para nomear o dataset de avaliação e o dashboard)
+- `USERNAME_LANGSMITH_HUB` — seu username no Prompt Hub (publique qualquer prompt, abra-o e clique no ícone de cadeado para descobrir)
+- `LLM_PROVIDER` — `openai` ou `google`
+- `LLM_MODEL` — modelo usado para gerar as respostas (ex.: `gpt-4o-mini` ou `gemini-2.5-flash`)
+- `EVAL_MODEL` — modelo usado como juiz nas 5 métricas (ex.: `gpt-4o` ou `gemini-2.5-flash`)
+- `OPENAI_API_KEY` (obrigatório se `LLM_PROVIDER=openai`) ou `GOOGLE_API_KEY` (obrigatório se `LLM_PROVIDER=google`)
+
+### 2. Instalar dependências
+
+**Opção A — virtualenv:**
 
 ```bash
 python3 -m venv venv
@@ -259,31 +285,38 @@ source venv/bin/activate  # No Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
----
-
-## Ordem de execução
-
-### 1. Executar pull dos prompts ruins
+**Opção B — Docker:**
 
 ```bash
+docker build -t prompt-opt .
+docker run --env-file .env prompt-opt
+```
+
+O comando padrão da imagem executa `python src/evaluate.py`. Para rodar outro script (pull, push ou os testes), sobrescreva o comando do container:
+
+```bash
+docker run --env-file .env prompt-opt python src/push_prompts.py
+```
+
+### 3. Executar o pipeline, fase a fase
+
+```bash
+# 1. Pull do prompt v1 (baixa qualidade) do LangSmith Hub
 python src/pull_prompts.py
-```
 
-### 2. Refatorar prompts
+# 2. Editar manualmente prompts/bug_to_user_story_v2.yml aplicando as técnicas escolhidas
 
-Edite manualmente o arquivo `prompts/bug_to_user_story_v2.yml` aplicando as técnicas aprendidas no curso.
+# 3. Validar a estrutura do prompt localmente, sem chamadas de rede/LLM
+pytest tests/test_prompts.py -v
 
-### 3. Fazer push dos prompts otimizados
-
-```bash
+# 4. Push do prompt v2 (otimizado) para o LangSmith Hub, como público
 python src/push_prompts.py
-```
 
-### 4. Executar avaliação
-
-```bash
+# 5. Avaliar o prompt v2 publicado contra o dataset de 15 exemplos
 python src/evaluate.py
 ```
+
+Repita os passos 2-5 até que as 5 métricas (Helpfulness, Correctness, F1-Score, Clarity, Precision) fiquem `>= 0.8`. `evaluate.py` sempre avalia o prompt v2 **já publicado no Hub** — um `push_prompts.py` bem-sucedido é pré-requisito para cada rodada de avaliação; ele nunca lê o YAML local nem avalia a v1.
 
 ---
 
