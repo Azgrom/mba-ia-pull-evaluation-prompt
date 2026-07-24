@@ -145,7 +145,7 @@ EVAL_MODEL=gemini-3.5-flash-lite    # juiz das 5 métricas
 
 #### Screenshots das avaliações (notas mínimas de 0.8 atingidas)
 
-  ![[swappy-20260724_193725.png]]
+  ![[screenshots/swappy-20260724_193725.png]]
 
 Saída esperada de `python src/evaluate.py` na execução final aprovada:
 
@@ -322,12 +322,12 @@ Link público (ou screenshots) do dashboard, com os seguintes itens visíveis:
 
 - **Dataset de avaliação com 15 exemplos** — `FullCycleChallenge-eval`
   (5 simples / 7 médios / 3 complexos).
-  ![[swappy-20260724_192735.png]]![[swappy-20260724_192807.png]]![[swappy-20260724_192818.png]]
+  ![[screenshots/swappy-20260724_192735.png]]![[screenshots/swappy-20260724_192807.png]]![[screenshots/swappy-20260724_192818.png]]
 - **Execuções dos prompts v2 (otimizados) com notas `>= 0.8`** — run de
   `azgrom/bug_to_user_story_v2` com STATUS APROVADO.
-  ![[swappy-20260724_193725.png]]
+  ![[screenshots/swappy-20260724_193725.png]]
 - **Tracing detalhado de pelo menos 3 exemplos** — traces de um exemplo simples, um
-  médio e um complexo, mostrando entrada, geração e o raciocínio dos juízes.![[swappy-20260724_193553.png]]
+  médio e um complexo, mostrando entrada, geração e o raciocínio dos juízes.![[screenshots/swappy-20260724_193553.png]]
 
 
 > Dica: no dashboard, abra o run de avaliação → aba **Traces**, e torne o projeto público
