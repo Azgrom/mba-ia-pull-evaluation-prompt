@@ -306,7 +306,7 @@ python src/pull_prompts.py
 
 # 2. Editar manualmente prompts/bug_to_user_story_v2.yml aplicando as técnicas escolhidas
 
-# 3. Validar a estrutura do prompt localmente, sem chamadas de rede/LLM
+# 3. Validar a estrutura do prompt localmente (ver seção 4 abaixo)
 pytest tests/test_prompts.py -v
 
 # 4. Push do prompt v2 (otimizado) para o LangSmith Hub, como público
@@ -317,6 +317,41 @@ python src/evaluate.py
 ```
 
 Repita os passos 2-5 até que as 5 métricas (Helpfulness, Correctness, F1-Score, Clarity, Precision) fiquem `>= 0.8`. `evaluate.py` sempre avalia o prompt v2 **já publicado no Hub** — um `push_prompts.py` bem-sucedido é pré-requisito para cada rodada de avaliação; ele nunca lê o YAML local nem avalia a v1.
+
+### 4. Executar os testes unitários
+
+Os testes em `tests/test_prompts.py` validam a **estrutura** de `prompts/bug_to_user_story_v2.yml` (persona, formato de User Story, few-shot, ausência de `TODO`, mínimo de técnicas) — são locais, rápidos e não fazem nenhuma chamada de rede ou de LLM. Rode-os sempre antes de um `push_prompts.py`, já que `push_prompts.py` aplica o mesmo gate de validação (`utils.validate_prompt_structure`) e recusa publicar um prompt inválido.
+
+**Com virtualenv ativado:**
+
+```bash
+pytest tests/test_prompts.py -v
+```
+
+**Rodando um teste específico:**
+
+```bash
+pytest tests/test_prompts.py -v -k test_prompt_has_few_shot_examples
+```
+
+**Via Docker** (sem precisar instalar Python/dependências localmente):
+
+```bash
+docker run --rm -v "$PWD":/app -w /app prompt-opt pytest tests/test_prompts.py -v
+```
+
+Saída esperada quando tudo passa:
+
+```
+tests/test_prompts.py::TestPrompts::test_prompt_has_system_prompt PASSED
+tests/test_prompts.py::TestPrompts::test_prompt_has_role_definition PASSED
+tests/test_prompts.py::TestPrompts::test_prompt_mentions_format PASSED
+tests/test_prompts.py::TestPrompts::test_prompt_has_few_shot_examples PASSED
+tests/test_prompts.py::TestPrompts::test_prompt_no_todos PASSED
+tests/test_prompts.py::TestPrompts::test_minimum_techniques PASSED
+
+============================== 6 passed in 0.08s ===============================
+```
 
 ---
 
