@@ -288,7 +288,7 @@ pip install -r requirements.txt
 **Opção B — Docker:**
 
 ```bash
-docker build -t prompt-opt .
+docker build -t langchain-prompt-optimization .
 docker run --env-file .env prompt-opt
 ```
 
