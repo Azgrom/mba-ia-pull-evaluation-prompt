@@ -40,6 +40,13 @@ Docker (alternative to venv): `docker build -t prompt-opt . && docker run --env-
 - The other 4 functions (`evaluate_tone_score`, `evaluate_acceptance_criteria_score`, `evaluate_user_story_format_score`, `evaluate_completeness_score`) exist and are exercised by `metrics.py`'s own `if __name__ == "__main__"` smoke test, but **evaluate.py never calls them** — don't expect them to move your score.
 - All 5 reported metrics must individually be >= 0.8 (checked, not just the average) for `evaluate.py` to print APROVADO.
 - The eval dataset is auto-created in LangSmith on first run as `{LANGSMITH_PROJECT}-eval`; if a dataset with that name already exists it's reused as-is (no diffing against the current `.jsonl`).
+- Displayed scores round to 2 decimals but the threshold check doesn't: `0.80 ✗` means the true value is in `[0.795, 0.7999]`. Target ~0.85, not 0.80 — neither model is bit-reproducible at `temperature=0`.
+- Each judge is a **mean of sub-criteria**, and those are the real optimization target: clarity = mean(Organização, Linguagem, Ambiguidade, **Concisão**); precision = mean(Alucinações, **Foco na Pergunta**, Correção Factual). One weak sub-score drags a metric ~0.1.
+- Precision carries 40% of the aggregate (`total = 1.5·clarity + 1.5·f1 + 2·precision`) — always the highest-leverage metric. High f1 + low precision = over-production; fix subtractively.
+- The judges return a `reasoning` string that `evaluate.py` discards. To diagnose, write a throwaway script importing `metrics.py` — that doesn't violate the do-not-modify rule. `evaluate.py` also prints per-example scores; capture them, not just the summary.
+- One run = 60 LLM calls (15 examples × 1 generation + 3 judges). Averages are taken over *successful* examples only, so a partial failure silently shrinks the sample.
+- `{`/`}` in `system_prompt` are `ChatPromptTemplate` variables — v2 uses `[brackets]` for placeholders deliberately.
+- Reference format taxonomy (derived from the dataset — this is what the judges compare against): **simple** (ex. 1-5) = user story + exactly 5 AC bullets, no other sections; **medium** (ex. 6-12) = plain `Header:` sections, 5/7 carry a second criteria group plus a context section named `Contexto Técnico` | `Contexto do Bug` | `Contexto de Segurança`; **complex** (ex. 13-15) = `=== BANNER ===` sections, opening with `=== USER STORY PRINCIPAL ===` (Título/Descrição) and four `A.`-`D.` criteria groups.
 
 ## Environment
 
